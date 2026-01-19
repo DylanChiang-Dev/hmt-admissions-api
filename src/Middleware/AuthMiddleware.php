@@ -1,37 +1,41 @@
 <?php
+namespace HmtAdmissions\Api\Middleware;
 
-namespace App\Middleware;
+use HmtAdmissions\Api\Utils\Jwt;
+use Exception;
 
-use App\Request;
-use App\Config;
-use App\Utils\Jwt;
-use App\Exceptions\AuthException;
+class AuthMiddleware {
+    public function handle() {
+        if (!function_exists('getallheaders')) {
+            function getallheaders() {
+                $headers = [];
+                foreach ($_SERVER as $name => $value) {
+                    if (substr($name, 0, 5) == 'HTTP_') {
+                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                    }
+                }
+                return $headers;
+            }
+        }
 
-class AuthMiddleware
-{
-    public function handle(Request $req, callable $next)
-    {
-        $authHeader = $req->getHeader('Authorization');
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
 
-        if (!$authHeader || !preg_match('/^Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            throw new AuthException('Missing or invalid token format', 'AUTH_INVALID_TOKEN');
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized: Missing token']);
+            exit;
         }
 
         $token = $matches[1];
-        $secret = Config::get('JWT_SECRET');
 
-        // This will throw AuthException if invalid or expired
-        $payload = Jwt::decode($token, $secret);
-
-        // Attach user info to request
-        $req->setAttribute('user_id', $payload['user_id']);
-        if (isset($payload['email'])) {
-            $req->setAttribute('email', $payload['email']);
+        try {
+            $decoded = Jwt::decode($token);
+            return (array) $decoded; // Return payload (user_id, etc)
+        } catch (Exception $e) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized: Invalid token']);
+            exit;
         }
-        if (isset($payload['role'])) {
-            $req->setAttribute('role', $payload['role']);
-        }
-
-        return $next($req);
     }
 }

@@ -1,36 +1,70 @@
 <?php
+namespace HmtAdmissions\Api\Controllers;
 
-namespace App\Controllers;
+use HmtAdmissions\Api\Core\Database;
+use PDO;
 
-use App\Request;
-use App\Response;
-use App\Services\AuthService;
-use App\Exceptions\ValidationException;
+class AuthController {
+    public function register() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
 
-class AuthController
-{
-    private AuthService $authService;
-
-    public function __construct()
-    {
-        $this->authService = new AuthService();
-    }
-
-    public function anonymous(Request $req): Response
-    {
-        $result = $this->authService->anonymous();
-        return Response::json($result);
-    }
-
-    public function login(Request $req): Response
-    {
-        $params = $req->getParams();
-
-        if (empty($params['email'])) {
-            throw new ValidationException(['email' => 'Email is required']);
+        if (!$email || !$password) {
+            http_response_code(400);
+            return ['error' => 'Missing email or password'];
         }
 
-        $result = $this->authService->login($params['email']);
-        return Response::json($result);
+        $pdo = Database::getConnection();
+
+        // Check if exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            http_response_code(409);
+            return ['error' => 'Email already exists'];
+        }
+
+        // Insert
+        $id = uniqid(); // Use UUID in production
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)");
+        $stmt->execute([$id, $email, $hash]);
+
+        return [
+            'access_token' => 'fake-jwt-token-' . $id,
+            'user_id' => $id,
+            'expires_in' => 3600
+        ];
+    }
+
+    public function login() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT id, password_hash FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            http_response_code(401);
+            return ['error' => 'Invalid credentials'];
+        }
+
+        $payload = [
+            'user_id' => $user['id'],
+            'exp' => time() + (86400 * 30) // 30 days
+        ];
+
+        // Use full namespace for Jwt if not imported
+        $token = \HmtAdmissions\Api\Utils\Jwt::encode($payload);
+
+        return [
+            'access_token' => $token,
+            'user_id' => $user['id'],
+            'expires_in' => 86400 * 30
+        ];
     }
 }
