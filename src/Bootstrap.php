@@ -2,6 +2,9 @@
 
 namespace App;
 
+use App\Services\AttemptService;
+use App\Services\AuthService;
+
 class Bootstrap
 {
     private static array $services = [];
@@ -23,32 +26,42 @@ class Bootstrap
     {
         $repoType = Config::get('REPO_TYPE', 'memory');
 
-        // Lesson Pack Repository
-        if ($repoType === 'memory') {
-            self::$services['lesson_pack_repo'] = new \App\Repositories\Memory\MemoryLessonPackRepository();
-        } else {
-            self::$services['lesson_pack_repo'] = new \App\Repositories\Memory\MemoryLessonPackRepository();
-        }
+        if ($repoType === 'mysql') {
+            // Repositories
+            $userRepo = new \App\Repositories\MySql\MySqlUserRepository();
+            $questionRepo = new \App\Repositories\MySql\MySqlQuestionRepository();
+            $lessonPackRepo = new \App\Repositories\MySql\MySqlLessonPackRepository($questionRepo);
+            $attemptRepo = new \App\Repositories\MySql\MySqlAttemptRepository();
+            $progressRepo = new \App\Repositories\MySql\MySqlProgressRepository();
+            $reviewRepo = new \App\Repositories\MySql\MySqlReviewRepository();
 
-        // Attempt Repository
-        if ($repoType === 'memory') {
-            self::$services['attempt_repo'] = new \App\Repositories\Memory\MemoryAttemptRepository();
-        } else {
-            self::$services['attempt_repo'] = new \App\Repositories\Memory\MemoryAttemptRepository();
-        }
+            self::$services['user_repo'] = $userRepo;
+            self::$services['question_repo'] = $questionRepo;
+            self::$services['lesson_pack_repo'] = $lessonPackRepo;
+            self::$services['attempt_repo'] = $attemptRepo;
+            self::$services['progress_repo'] = $progressRepo;
+            self::$services['review_repo'] = $reviewRepo;
 
-        // Progress Repository
-        if ($repoType === 'memory') {
-            self::$services['progress_repo'] = new \App\Repositories\MemoryProgressRepository();
+            // Services
+            self::$services['auth_service'] = new AuthService($userRepo);
+            self::$services['attempt_service'] = new AttemptService($attemptRepo, $progressRepo, $questionRepo);
         } else {
-            self::$services['progress_repo'] = new \App\Repositories\MemoryProgressRepository();
-        }
+            // Memory Repositories
+            $questionRepo = new \App\Repositories\Memory\MemoryQuestionRepository();
+            $lessonPackRepo = new \App\Repositories\Memory\MemoryLessonPackRepository();
+            $attemptRepo = new \App\Repositories\Memory\MemoryAttemptRepository();
+            $progressRepo = new \App\Repositories\MemoryProgressRepository();
+            $reviewRepo = new \App\Repositories\MemoryReviewRepository();
 
-        // Review Repository
-        if ($repoType === 'memory') {
-            self::$services['review_repo'] = new \App\Repositories\MemoryReviewRepository();
-        } else {
-            self::$services['review_repo'] = new \App\Repositories\MemoryReviewRepository();
+            self::$services['question_repo'] = $questionRepo;
+            self::$services['lesson_pack_repo'] = $lessonPackRepo;
+            self::$services['attempt_repo'] = $attemptRepo;
+            self::$services['progress_repo'] = $progressRepo;
+            self::$services['review_repo'] = $reviewRepo;
+
+            // Services
+            // Note: AuthService is not available in memory mode as we don't have MemoryUserRepository
+            self::$services['attempt_service'] = new AttemptService($attemptRepo, $progressRepo, $questionRepo);
         }
     }
 

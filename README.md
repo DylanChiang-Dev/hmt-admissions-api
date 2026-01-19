@@ -74,3 +74,26 @@ curl -X GET http://localhost:8000/v1/review/queue \
 
 ## 開發者工具
 - `tools/import_questions.php`: 用於匯入題目的工具（Phase 2 預定功能）。
+
+## Database Setup (MySQL)
+
+1. **Create Database**:
+   Create a MySQL database named `hmt_admissions`.
+   ```sql
+   CREATE DATABASE hmt_admissions CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+2. **Initialize Tables**:
+   Run the initialization script:
+   ```bash
+   php db/init_db.php
+   ```
+
+3. **Import Questions (Optional)**:
+   If you want sample data, run the import tool:
+   ```bash
+   php tools/import_questions.php
+   ```
+
+4. **Configuration**:
+   Set `REPO_TYPE=mysql` in your `.env` file to enable MySQL storage.

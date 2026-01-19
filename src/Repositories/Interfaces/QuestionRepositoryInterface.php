@@ -1,0 +1,10 @@
+<?php
+
+namespace App\Repositories\Interfaces;
+
+interface QuestionRepositoryInterface
+{
+    public function save(array $question): void;
+    public function findByFilters(string $examPath, ?string $track, ?string $subject, int $limit): array;
+    public function findById(string $id): ?array;
+}

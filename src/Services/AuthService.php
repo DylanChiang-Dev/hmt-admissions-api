@@ -5,14 +5,17 @@ namespace App\Services;
 use App\Utils\Jwt;
 use App\Utils\Uuid;
 use App\Config;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 
 class AuthService
 {
     private string $secret;
+    private UserRepositoryInterface $userRepository;
 
-    public function __construct()
+    public function __construct(UserRepositoryInterface $userRepository)
     {
         $this->secret = Config::get('JWT_SECRET');
+        $this->userRepository = $userRepository;
     }
 
     public function anonymous(): array
@@ -20,6 +23,12 @@ class AuthService
         $userId = Uuid::generate();
         $now = time();
         $expiresIn = 30 * 24 * 60 * 60; // 30 days
+
+        $this->userRepository->save([
+            'id' => $userId,
+            'email' => null,
+            'created_at' => date('Y-m-d H:i:s', $now)
+        ]);
 
         $payload = [
             'user_id' => $userId,
@@ -37,10 +46,20 @@ class AuthService
 
     public function login(string $email): array
     {
-        // Mock implementation
-        // Use a stable fake ID based on email so it's consistent for testing
-        $userId = md5($email);
+        $user = $this->userRepository->findByEmail($email);
         $now = time();
+
+        if (!$user) {
+            $userId = Uuid::generate();
+            $this->userRepository->save([
+                'id' => $userId,
+                'email' => $email,
+                'created_at' => date('Y-m-d H:i:s', $now)
+            ]);
+        } else {
+            $userId = $user['id'];
+        }
+
         $expiresIn = 24 * 60 * 60; // 1 day
 
         $payload = [
