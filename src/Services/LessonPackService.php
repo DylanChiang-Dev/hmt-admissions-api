@@ -13,8 +13,8 @@ class LessonPackService
         $this->repository = $repository;
     }
 
-    public function getToday(string $examPath, ?string $track, ?string $subject): array
+    public function getToday(string $examPath, ?string $subject): array
     {
-        return $this->repository->getToday($examPath, $track, $subject);
+        return $this->repository->getToday($examPath, $subject);
     }
 }

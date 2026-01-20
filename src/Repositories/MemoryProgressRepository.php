@@ -23,4 +23,9 @@ class MemoryProgressRepository implements ProgressRepositoryInterface
             "last_activity_at" => "2025-01-19T10:35:00Z"
         ];
     }
+
+    public function saveUserProgress(string $userId, array $data): void
+    {
+        // Memory implementation - no-op for now
+    }
 }

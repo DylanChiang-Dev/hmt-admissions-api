@@ -38,6 +38,25 @@ class Config
 
     public static function get(string $key, $default = null)
     {
-        return self::$data[$key] ?? $_ENV[$key] ?? $default;
+        // 優先級：系統環境變量 > 文件載入 > 默認值
+        // 這樣 Docker 環境變量可以覆蓋 .env 文件
+        
+        // 1. 首先檢查系統環境變量（Docker, 命令行等）
+        $envValue = getenv($key);
+        if ($envValue !== false) {
+            return $envValue;
+        }
+        
+        // 2. 然後從文件載入的配置讀取
+        if (isset(self::$data[$key])) {
+            return self::$data[$key];
+        }
+        
+        // 3. 回退到 $_ENV
+        if (isset($_ENV[$key])) {
+            return $_ENV[$key];
+        }
+        
+        return $default;
     }
 }

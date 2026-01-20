@@ -41,12 +41,15 @@ class AttemptService
         $isCorrect = $this->checkAnswer($userAnswer, $question);
 
         // 3. Save Attempt
+        // 將 answer 包裝為數組以確保是有效的 JSON
+        $answerForJson = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+        
         $attemptData = [
             'user_id' => $userId,
             'question_id' => $questionId,
-            'answer_json' => $userAnswer,
+            'answer_json' => $answerForJson,
             'correct' => $isCorrect,
-            'elapsed_ms' => $data['elapsed_ms'] ?? 0,
+            'elapsed_ms' => $data['time_spent_ms'] ?? $data['elapsed_ms'] ?? 0,
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -63,15 +66,34 @@ class AttemptService
         $progress['daily_done_count'] = ($progress['daily_done_count'] ?? 0) + 1;
         $progress['last_activity_at'] = date('Y-m-d H:i:s');
 
-        // Update streak logic (simplified for now)
-        // If last activity was yesterday, increment streak. If today, keep it. If older, reset to 1.
-        // For MVP, just incrementing daily count is enough, but let's do a basic check if we have previous date.
-        // Assuming this is called once per attempt.
-        // Real streak logic usually checks dates. We'll leave it simple for now as requested ("simple increment" probably refers to counts).
-
         $this->progressRepo->saveUserProgress($userId, $progress);
 
-        return $savedAttempt;
+        // 5. 獲取正確答案用於返回
+        $correctAnswer = $this->getCorrectAnswer($question);
+        
+        // 6. 計算 XP（正確 +10，錯誤 +0）
+        $xpEarned = $isCorrect ? 10 : 0;
+
+        // 返回 AttemptResult 格式
+        return [
+            'is_correct' => $isCorrect,
+            'correct_answer' => $correctAnswer,
+            'explanation' => $isCorrect ? '答對了！' : '正確答案是 ' . $correctAnswer,
+            'xp_earned' => $xpEarned,
+        ];
+    }
+
+    private function getCorrectAnswer(array $question): string
+    {
+        if (isset($question['options']) && is_array($question['options'])) {
+            foreach ($question['options'] as $option) {
+                $isCorrectOption = $option['correct'] ?? $option['is_correct'] ?? false;
+                if ($isCorrectOption) {
+                    return $option['label'] ?? $option['id'] ?? '';
+                }
+            }
+        }
+        return '';
     }
 
     private function checkAnswer($userAnswer, array $question): bool
@@ -84,24 +106,25 @@ class AttemptService
             return $userAnswer == $question['answer_key_json'];
         }
 
-        // Priority 2: Check inside options if one is marked correct (common in some formats)
-        // Structure: [ {'id': 'A', 'text': '...', 'is_correct': true}, ... ]
+        // Priority 2: Check inside options if one is marked correct
+        // Structure: [ {'label': 'A', 'content': '...', 'correct': true}, ... ]
         if (isset($question['options']) && is_array($question['options'])) {
             foreach ($question['options'] as $option) {
-                if (isset($option['is_correct']) && $option['is_correct']) {
-                    // Assuming userAnswer is the option ID (e.g. "A") or text
-                    // Check if userAnswer matches option ID or content
-                    if (isset($option['id']) && $userAnswer == $option['id']) {
+                // 檢查 'correct' 或 'is_correct' 字段
+                $isCorrectOption = $option['correct'] ?? $option['is_correct'] ?? false;
+                if ($isCorrectOption) {
+                    // userAnswer 為選項 label (如 "A", "B", "C", "D")
+                    $optionLabel = $option['label'] ?? $option['id'] ?? null;
+                    if ($optionLabel && $userAnswer === $optionLabel) {
                         return true;
                     }
                 }
             }
+            // 有選項但用戶答案不正確
+            return false;
         }
 
-        // Fallback: Return true if we can't verify (avoid blocking user in MVP if data missing)
-        // OR return false. Prompt says "compare input ... or logic".
-        // Let's assume false to be safe, unless it's a practice mode.
-        // Actually, if we can't verify, it's better to log error, but we'll return false.
+        // Fallback: Return false if we can't verify
         return false;
     }
 }

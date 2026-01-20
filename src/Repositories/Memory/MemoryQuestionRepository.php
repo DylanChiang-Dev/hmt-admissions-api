@@ -11,7 +11,7 @@ class MemoryQuestionRepository implements QuestionRepositoryInterface
         // No-op for memory mock
     }
 
-    public function findByFilters(string $examPath, ?string $track, ?string $subject, int $limit): array
+    public function findByFilters(string $examPath, ?string $subject, int $limit): array
     {
         // Return mock questions
         $mockQuestions = [];
@@ -19,7 +19,6 @@ class MemoryQuestionRepository implements QuestionRepositoryInterface
             $mockQuestions[] = [
                 'id' => 'mock-q-' . $i,
                 'exam_path' => $examPath,
-                'track' => $track,
                 'subject' => $subject,
                 'question_type' => 'single_choice',
                 'stem' => 'Mock Question ' . ($i + 1),
@@ -29,7 +28,6 @@ class MemoryQuestionRepository implements QuestionRepositoryInterface
                     ['id' => 'C', 'text' => 'Option C'],
                     ['id' => 'D', 'text' => 'Option D'],
                 ],
-                'difficulty' => 3,
                 'tags' => ['mock'],
                 'knowledge_point_ids' => []
             ];
@@ -41,9 +39,8 @@ class MemoryQuestionRepository implements QuestionRepositoryInterface
     {
         return [
             'id' => $id,
-            'exam_path' => 'mock_exam',
-            'track' => 'mock_track',
-            'subject' => 'mock_subject',
+            'exam_path' => 'master',
+            'subject' => 'culture',
             'question_type' => 'single_choice',
             'stem' => 'Mock Question ' . $id,
             'options' => [
@@ -52,7 +49,6 @@ class MemoryQuestionRepository implements QuestionRepositoryInterface
                 ['id' => 'C', 'text' => 'Option C'],
                 ['id' => 'D', 'text' => 'Option D'],
             ],
-            'difficulty' => 3,
             'tags' => ['mock'],
             'knowledge_point_ids' => [],
             'answer_key_json' => 'A' // Consistent with options

@@ -12,20 +12,18 @@ class MemoryReviewRepository implements ReviewRepositoryInterface
             "items" => [
                 [
                     "id" => "q-005",
-                    "exam_path" => "undergrad_joint",
-                    "track" => "science",
-                    "subject" => "physics",
+                    "exam_path" => "master",
+                    "subject" => "logic",
                     "question_type" => "single_choice",
-                    "stem" => "一個質量為 2kg 的物體受到 10N 的力作用，求其加速度。",
+                    "stem" => "以下推理中，哪個是有效的演繹推理？",
                     "options" => [
-                        ["label" => "A", "content" => "2 m/s²"],
-                        ["label" => "B", "content" => "5 m/s²"],
-                        ["label" => "C", "content" => "10 m/s²"],
-                        ["label" => "D", "content" => "20 m/s²"]
+                        ["label" => "A", "content" => "所有人都會死，蘇格拉底是人，所以蘇格拉底會死"],
+                        ["label" => "B", "content" => "太陽每天升起，所以明天太陽會升起"],
+                        ["label" => "C", "content" => "大多數鳥會飛，企鵝是鳥，所以企鵝會飛"],
+                        ["label" => "D", "content" => "我的車是紅色的，所以所有車都是紅色的"]
                     ],
-                    "difficulty" => 2,
-                    "tags" => ["牛頓定律", "力學"],
-                    "knowledge_point_ids" => ["kp-physics-001"]
+                    "tags" => ["邏輯推理", "演繹"],
+                    "knowledge_point_ids" => ["kp-logic-001"]
                 ]
             ],
             "total_count" => 1
@@ -42,11 +40,10 @@ class MemoryReviewRepository implements ReviewRepositoryInterface
             "daily_goal" => 10,
             "daily_done_count" => 4,
             "subject_mastery" => [
-                "math" => 65,
-                "chinese" => 70,
-                "english" => 55,
-                "physics" => 62,
-                "chemistry" => 50
+                "culture" => 65,
+                "english" => 70,
+                "logic" => 55,
+                "math" => 62
             ],
             "last_activity_at" => "2025-01-19T10:35:00Z"
         ];

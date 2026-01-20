@@ -4,5 +4,5 @@ namespace App\Repositories\Interfaces;
 
 interface LessonPackRepositoryInterface
 {
-    public function getToday(string $examPath, ?string $track, ?string $subject): array;
+    public function getToday(string $examPath, ?string $subject): array;
 }

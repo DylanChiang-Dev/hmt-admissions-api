@@ -61,6 +61,11 @@ class Request
         return $this->params;
     }
 
+    public function getQueryParams(): array
+    {
+        return $_GET;
+    }
+
     public function getHeader(string $name): ?string
     {
         // Case-insensitive header lookup

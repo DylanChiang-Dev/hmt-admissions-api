@@ -14,19 +14,15 @@ class MySqlLessonPackRepository implements LessonPackRepositoryInterface
         $this->questionRepository = $questionRepository;
     }
 
-    public function getToday(string $examPath, ?string $track, ?string $subject): array
+    public function getToday(string $examPath, ?string $subject): array
     {
         // Fetch 10 random questions from the repository
-        // Assuming getRandom returns an array of question arrays
-        $questions = $this->questionRepository->getRandom($examPath, $track, $subject, 10);
+        $questions = $this->questionRepository->getRandom($examPath, $subject, 10);
 
         $date = date('Y-m-d');
 
         // Construct a unique ID for the lesson pack
         $idParts = ['lp', $date, $examPath];
-        if ($track) {
-            $idParts[] = $track;
-        }
         if ($subject) {
             $idParts[] = $subject;
         }
@@ -41,7 +37,6 @@ class MySqlLessonPackRepository implements LessonPackRepositoryInterface
             'id' => $id,
             'date' => $date,
             'exam_path' => $examPath,
-            'track' => $track,
             'subject' => $subject,
             'items' => $questions,
             'goal_xp' => $goalXp,

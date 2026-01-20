@@ -20,7 +20,7 @@ class MySqlReviewRepository implements ReviewRepositoryInterface
         $sql = "
             SELECT
                 q.id, q.exam_path, q.track, q.subject, q.question_type,
-                q.stem, q.options_json, q.difficulty, q.tags_json, q.knowledge_point_ids_json,
+                q.stem, q.options_json, q.tags_json, q.knowledge_point_ids_json,
                 rq.due_at, rq.interval_days, rq.ease_factor
             FROM review_queue rq
             JOIN questions q ON rq.question_id = q.id
@@ -50,7 +50,6 @@ class MySqlReviewRepository implements ReviewRepositoryInterface
                 'question_type' => $row['question_type'],
                 'stem' => $row['stem'],
                 'options' => json_decode($row['options_json'] ?? '[]', true),
-                'difficulty' => (int)$row['difficulty'],
                 'tags' => json_decode($row['tags_json'] ?? '[]', true),
                 'knowledge_point_ids' => json_decode($row['knowledge_point_ids_json'] ?? '[]', true),
                 'review_data' => [

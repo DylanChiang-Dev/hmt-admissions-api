@@ -19,10 +19,10 @@ class MySqlQuestionRepository implements QuestionRepositoryInterface
     {
         $sql = "INSERT INTO questions (
                     id, exam_path, track, subject, question_type, stem,
-                    options_json, difficulty, tags_json, knowledge_point_ids_json
+                    options_json, tags_json, knowledge_point_ids_json
                 ) VALUES (
                     :id, :exam_path, :track, :subject, :question_type, :stem,
-                    :options_json, :difficulty, :tags_json, :knowledge_point_ids_json
+                    :options_json, :tags_json, :knowledge_point_ids_json
                 ) ON DUPLICATE KEY UPDATE
                     exam_path = VALUES(exam_path),
                     track = VALUES(track),
@@ -30,7 +30,6 @@ class MySqlQuestionRepository implements QuestionRepositoryInterface
                     question_type = VALUES(question_type),
                     stem = VALUES(stem),
                     options_json = VALUES(options_json),
-                    difficulty = VALUES(difficulty),
                     tags_json = VALUES(tags_json),
                     knowledge_point_ids_json = VALUES(knowledge_point_ids_json)";
 
@@ -44,21 +43,15 @@ class MySqlQuestionRepository implements QuestionRepositoryInterface
             ':question_type' => $question['question_type'] ?? null,
             ':stem' => $question['stem'] ?? null,
             ':options_json' => isset($question['options']) ? json_encode($question['options'], JSON_UNESCAPED_UNICODE) : null,
-            ':difficulty' => $question['difficulty'] ?? 0,
             ':tags_json' => isset($question['tags']) ? json_encode($question['tags'], JSON_UNESCAPED_UNICODE) : null,
             ':knowledge_point_ids_json' => isset($question['knowledge_point_ids']) ? json_encode($question['knowledge_point_ids'], JSON_UNESCAPED_UNICODE) : null,
         ]);
     }
 
-    public function findByFilters(string $examPath, ?string $track, ?string $subject, int $limit): array
+    public function findByFilters(string $examPath, ?string $subject, int $limit): array
     {
         $sql = "SELECT * FROM questions WHERE exam_path = :exam_path";
         $params = [':exam_path' => $examPath];
-
-        if ($track) {
-            $sql .= " AND track = :track";
-            $params[':track'] = $track;
-        }
 
         if ($subject) {
             $sql .= " AND subject = :subject";
@@ -104,5 +97,11 @@ class MySqlQuestionRepository implements QuestionRepositoryInterface
         unset($row['options_json'], $row['tags_json'], $row['knowledge_point_ids_json']);
 
         return $row;
+    }
+
+    public function getRandom(string $examPath, ?string $subject, int $limit): array
+    {
+        // 直接使用 findByFilters，因為它已經包含 ORDER BY RAND()
+        return $this->findByFilters($examPath, $subject, $limit);
     }
 }

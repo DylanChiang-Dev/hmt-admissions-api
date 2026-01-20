@@ -3,52 +3,68 @@
 namespace App\Repositories\Memory;
 
 use App\Repositories\Interfaces\LessonPackRepositoryInterface;
-use App\Exceptions\NotFoundException;
 
 class MemoryLessonPackRepository implements LessonPackRepositoryInterface
 {
-    private string $jsonPath;
-
-    public function __construct(string $jsonPath = __DIR__ . '/../../../../hmt-admissions-spec/examples/lesson-pack-today.response.json')
+    public function getToday(string $examPath, ?string $subject): array
     {
-        $this->jsonPath = $jsonPath;
-    }
+        // 內嵌示例數據
+        $items = [
+            [
+                "id" => "q-001",
+                "exam_path" => $examPath,
+                "subject" => $subject ?? "culture",
+                "question_type" => "single_choice",
+                "stem" => "下列何者不是儒家經典「四書」之一？",
+                "options" => [
+                    ["label" => "A", "content" => "《大學》"],
+                    ["label" => "B", "content" => "《中庸》"],
+                    ["label" => "C", "content" => "《論語》"],
+                    ["label" => "D", "content" => "《詩經》", "correct" => true]
+                ],
+                "tags" => ["儒學", "經典"],
+                "knowledge_point_ids" => ["kp-001"]
+            ],
+            [
+                "id" => "q-002",
+                "exam_path" => $examPath,
+                "subject" => $subject ?? "math",
+                "question_type" => "single_choice",
+                "stem" => "若 x² - 5x + 6 = 0，則 x 的值為何？",
+                "options" => [
+                    ["label" => "A", "content" => "x = 1 或 x = 6"],
+                    ["label" => "B", "content" => "x = 2 或 x = 3", "correct" => true],
+                    ["label" => "C", "content" => "x = -2 或 x = -3"],
+                    ["label" => "D", "content" => "x = 0 或 x = 5"]
+                ],
+                "tags" => ["代數", "因式分解"],
+                "knowledge_point_ids" => ["kp-002"]
+            ],
+            [
+                "id" => "q-003",
+                "exam_path" => $examPath,
+                "subject" => $subject ?? "english",
+                "question_type" => "single_choice",
+                "stem" => "Choose the correct word: She _____ to the store yesterday.",
+                "options" => [
+                    ["label" => "A", "content" => "go"],
+                    ["label" => "B", "content" => "goes"],
+                    ["label" => "C", "content" => "went", "correct" => true],
+                    ["label" => "D", "content" => "going"]
+                ],
+                "tags" => ["grammar", "past tense"],
+                "knowledge_point_ids" => ["kp-003"]
+            ]
+        ];
 
-    public function getToday(string $examPath, ?string $track, ?string $subject): array
-    {
-        if (!file_exists($this->jsonPath)) {
-            // If file not found, we could throw or return empty.
-            // Given it's a "Memory" repo simulating data, throwing NotFound makes sense if the source is missing.
-            throw new NotFoundException("Lesson pack data source not found.", "DATA_SOURCE_MISSING");
-        }
-
-        $content = file_get_contents($this->jsonPath);
-        $data = json_decode($content, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-             throw new \RuntimeException("Invalid JSON data source.");
-        }
-
-        // Simulate dynamic data by overriding fields with input
-        $data['exam_path'] = $examPath;
-
-        if ($track) {
-            $data['track'] = $track;
-        }
-
-        if ($subject) {
-            $data['subject'] = $subject;
-        }
-
-        // Also update items to look consistent (optional but nice)
-        if (isset($data['items']) && is_array($data['items'])) {
-            foreach ($data['items'] as &$item) {
-                $item['exam_path'] = $examPath;
-                if ($track) $item['track'] = $track;
-                if ($subject) $item['subject'] = $subject;
-            }
-        }
-
-        return $data;
+        return [
+            "id" => "lp-" . date("Ymd"),
+            "date" => date("Y-m-d"),
+            "exam_path" => $examPath,
+            "subject" => $subject,
+            "items" => $items,
+            "goal_xp" => 30,
+            "estimated_minutes" => 5
+        ];
     }
 }

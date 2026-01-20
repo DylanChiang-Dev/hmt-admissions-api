@@ -1,70 +1,65 @@
 <?php
-namespace HmtAdmissions\Api\Controllers;
 
-use HmtAdmissions\Api\Core\Database;
-use PDO;
+namespace App\Controllers;
 
-class AuthController {
-    public function register() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $email = $data['email'] ?? '';
-        $password = $data['password'] ?? '';
+use App\Request;
+use App\Response;
+use App\Services\AuthService;
+use App\Exceptions\ValidationException;
+use App\Bootstrap;
+use App\Config;
+use App\Repositories\Memory\MemoryUserRepository;
+use App\Repositories\MySql\MySqlUserRepository;
 
-        if (!$email || !$password) {
-            http_response_code(400);
-            return ['error' => 'Missing email or password'];
+class AuthController
+{
+    private AuthService $authService;
+
+    public function __construct()
+    {
+        // 根據 REPO_TYPE 選擇 Repository
+        $repoType = Config::get('REPO_TYPE', 'memory');
+        
+        if ($repoType === 'mysql') {
+            $userRepository = new MySqlUserRepository();
+        } else {
+            $userRepository = new MemoryUserRepository();
         }
-
-        $pdo = Database::getConnection();
-
-        // Check if exists
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            http_response_code(409);
-            return ['error' => 'Email already exists'];
-        }
-
-        // Insert
-        $id = uniqid(); // Use UUID in production
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)");
-        $stmt->execute([$id, $email, $hash]);
-
-        return [
-            'access_token' => 'fake-jwt-token-' . $id,
-            'user_id' => $id,
-            'expires_in' => 3600
-        ];
+        
+        $this->authService = new AuthService($userRepository);
     }
 
-    public function login() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $email = $data['email'] ?? '';
-        $password = $data['password'] ?? '';
+    public function anonymous(Request $req): Response
+    {
+        $result = $this->authService->anonymous();
+        return Response::json($result);
+    }
 
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT id, password_hash FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+    public function login(Request $req): Response
+    {
+        $params = $req->getParams();
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
-            http_response_code(401);
-            return ['error' => 'Invalid credentials'];
+        if (empty($params['email'])) {
+            throw new ValidationException(['email' => 'Email is required']);
         }
 
-        $payload = [
-            'user_id' => $user['id'],
-            'exp' => time() + (86400 * 30) // 30 days
-        ];
+        $result = $this->authService->login($params['email']);
+        return Response::json($result);
+    }
 
-        // Use full namespace for Jwt if not imported
-        $token = \HmtAdmissions\Api\Utils\Jwt::encode($payload);
+    public function register(Request $req): Response
+    {
+        $params = $req->getParams();
 
-        return [
-            'access_token' => $token,
-            'user_id' => $user['id'],
-            'expires_in' => 86400 * 30
-        ];
+        if (empty($params['email'])) {
+            throw new ValidationException(['email' => 'Email is required']);
+        }
+        if (empty($params['password'])) {
+            throw new ValidationException(['password' => 'Password is required']);
+        }
+
+        // 簡化實現：直接使用 login 流程（因為 MVP 階段沒有真正的用戶存儲）
+        $result = $this->authService->login($params['email']);
+        return Response::json($result, 201);
     }
 }
