@@ -1,7 +1,7 @@
 <?php
-namespace HmtAdmissions\Api\Middleware;
+namespace App\Middleware;
 
-use HmtAdmissions\Api\Utils\Jwt;
+use App\Utils\Jwt;
 use Exception;
 
 class AuthMiddleware {

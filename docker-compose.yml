@@ -6,6 +6,15 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - .:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=hmt_admissions
+      - DB_USER=user
+      - DB_PASS=password
+      - REPO_TYPE=mysql
+      - APP_DEBUG=true
+      - JWT_SECRET=docker_secret_key_change_me
     depends_on:
       - db
 
