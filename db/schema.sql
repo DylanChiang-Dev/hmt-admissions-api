@@ -54,3 +54,14 @@ CREATE TABLE IF NOT EXISTS `review_queue` (
     PRIMARY KEY (`user_id`, `question_id`),
     KEY `idx_due_at` (`due_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin Panel 用户表
+CREATE TABLE IF NOT EXISTS `admin_users` (
+    `id` VARCHAR(36) NOT NULL,
+    `username` VARCHAR(255) NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `last_login_at` DATETIME DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
