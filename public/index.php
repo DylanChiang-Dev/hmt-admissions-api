@@ -11,13 +11,8 @@ use App\Middleware\CorsMiddleware;
 use App\Middleware\RequestIdMiddleware;
 use App\Middleware\AuthMiddleware;
 use App\Controllers\AuthController;
-use App\Controllers\ProgressController;
-use App\Controllers\ReviewController;
-use App\Services\ProgressService;
-use App\Services\ReviewService;
-use App\Services\LessonPackService;
-use App\Controllers\AttemptsController;
-use App\Controllers\LessonPackController;
+use App\Controllers\QuizController;
+use App\Services\QuizService;
 use App\Exceptions\AppException;
 
 Bootstrap::init();
@@ -29,7 +24,7 @@ $router = new Router();
 $router->addMiddleware(new CorsMiddleware());
 $router->addMiddleware(new RequestIdMiddleware());
 
-// Routes
+// Auth Routes
 $authController = new AuthController();
 
 $router->add('POST', '/v1/auth/anonymous', function (Request $req) use ($authController) {
@@ -54,54 +49,54 @@ $router->add('GET', '/v1/auth/me', function (Request $req) {
     });
 });
 
-// Progress & Review Dependencies
-$progressRepo = Bootstrap::getService('progress_repo');
-$progressService = new ProgressService($progressRepo);
-$progressController = new ProgressController($progressService);
+// Quiz Dependencies
+$db = Bootstrap::getService('db') ?? new PDO(
+    'mysql:host=' . Config::get('DB_HOST') . ';dbname=' . Config::get('DB_NAME') . ';charset=utf8mb4',
+    Config::get('DB_USER'),
+    Config::get('DB_PASS'),
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+);
+$questionRepo = Bootstrap::getService('question_repo');
+$quizService = new QuizService($db, $questionRepo);
+$quizController = new QuizController($quizService);
 
-$reviewRepo = Bootstrap::getService('review_repo');
-$reviewService = new ReviewService($reviewRepo);
-$reviewController = new ReviewController($reviewService);
-
-$attemptService = Bootstrap::getService('attempt_service');
-$attemptsController = new AttemptsController($attemptService);
-
-// Lesson Pack Dependencies
-$lessonPackRepo = Bootstrap::getService('lesson_pack_repo');
-$lessonPackService = new LessonPackService($lessonPackRepo);
-$lessonPackController = new LessonPackController($lessonPackService);
-
-// Progress Routes
-$router->add('GET', '/v1/progress', function (Request $req) use ($progressController) {
-    return (new AuthMiddleware())->handle($req, function ($r) use ($progressController) {
-        return $progressController->get($r);
+// Quiz Routes
+$router->add('GET', '/v1/quiz/start', function (Request $req) use ($quizController) {
+    return (new AuthMiddleware())->handle($req, function ($r) use ($quizController) {
+        return $quizController->start($r);
     });
 });
 
-// Review Routes
-$router->add('GET', '/v1/review/queue', function (Request $req) use ($reviewController) {
-    return (new AuthMiddleware())->handle($req, function ($r) use ($reviewController) {
-        return $reviewController->getQueue($r);
+$router->add('POST', '/v1/quiz/answer', function (Request $req) use ($quizController) {
+    return (new AuthMiddleware())->handle($req, function ($r) use ($quizController) {
+        return $quizController->answer($r);
     });
 });
 
-$router->add('POST', '/v1/review/complete', function (Request $req) use ($reviewController) {
-    return (new AuthMiddleware())->handle($req, function ($r) use ($reviewController) {
-        return $reviewController->complete($r);
+// Wrong Questions Routes
+$router->add('GET', '/v1/wrong-questions', function (Request $req) use ($quizController) {
+    return (new AuthMiddleware())->handle($req, function ($r) use ($quizController) {
+        return $quizController->getWrongQuestions($r);
     });
 });
 
-// Attempt Routes
-$router->add('POST', '/v1/attempts', function (Request $req) use ($attemptsController) {
-    return (new AuthMiddleware())->handle($req, function ($r) use ($attemptsController) {
-        return $attemptsController->submit($r);
+$router->add('GET', '/v1/wrong-questions/quiz', function (Request $req) use ($quizController) {
+    return (new AuthMiddleware())->handle($req, function ($r) use ($quizController) {
+        return $quizController->wrongQuestionsQuiz($r);
     });
 });
 
-// Lesson Pack Routes
-$router->add('GET', '/v1/lesson-packs/today', function (Request $req) use ($lessonPackController) {
-    return (new AuthMiddleware())->handle($req, function ($r) use ($lessonPackController) {
-        return $lessonPackController->getToday($r);
+// Questions List Route (题库浏览)
+$router->add('GET', '/v1/questions', function (Request $req) use ($questionRepo) {
+    return (new AuthMiddleware())->handle($req, function ($r) use ($questionRepo) {
+        $params = $r->getQueryParams();
+        $page = (int)($params['page'] ?? 1);
+        $limit = (int)($params['limit'] ?? 20);
+        $examPath = $params['exam_path'] ?? null;
+        $subject = $params['subject'] ?? null;
+        
+        $result = $questionRepo->findAll($examPath, $subject, $page, $limit);
+        return Response::json($result);
     });
 });
 

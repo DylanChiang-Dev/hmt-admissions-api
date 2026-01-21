@@ -22,8 +22,10 @@ class CorsMiddleware
         /** @var Response $response */
         $response = $next($request);
 
-        // Add CORS headers to all responses
+        // Add CORS headers to ALL responses
         $response->setHeader('Access-Control-Allow-Origin', '*');
+        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        $response->setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id');
 
         return $response;
     }

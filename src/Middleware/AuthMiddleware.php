@@ -2,40 +2,42 @@
 namespace App\Middleware;
 
 use App\Utils\Jwt;
+use App\Config;
+use App\Request;
+use App\Response;
 use Exception;
 
 class AuthMiddleware {
-    public function handle() {
-        if (!function_exists('getallheaders')) {
-            function getallheaders() {
-                $headers = [];
-                foreach ($_SERVER as $name => $value) {
-                    if (substr($name, 0, 5) == 'HTTP_') {
-                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-                    }
-                }
-                return $headers;
-            }
-        }
-
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    /**
+     * Handle authentication and call next handler
+     */
+    public function handle(Request $request, callable $next) {
+        $authHeader = $request->getHeader('Authorization') ?? '';
 
         if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized: Missing token']);
-            exit;
+            return Response::json([
+                'error' => ['code' => 'AUTH_MISSING_TOKEN', 'message' => '需要登入']
+            ], 401);
         }
 
         $token = $matches[1];
+        $secret = Config::get('JWT_SECRET');
 
         try {
-            $decoded = Jwt::decode($token);
-            return (array) $decoded; // Return payload (user_id, etc)
+            $decoded = Jwt::decode($token, $secret);
+            
+            // 将用户信息添加到请求中
+            $request->setAttribute('user_id', $decoded['user_id'] ?? null);
+            $request->setAttribute('email', $decoded['email'] ?? null);
+            $request->setAttribute('role', $decoded['role'] ?? 'user');
+            
+            // 调用下一个处理器
+            return $next($request);
         } catch (Exception $e) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized: Invalid token']);
-            exit;
+            return Response::json([
+                'error' => ['code' => 'AUTH_INVALID_TOKEN', 'message' => 'Token 無效或已過期']
+            ], 401);
         }
     }
 }
+

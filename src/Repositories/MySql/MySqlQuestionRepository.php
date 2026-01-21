@@ -104,4 +104,60 @@ class MySqlQuestionRepository implements QuestionRepositoryInterface
         // 直接使用 findByFilters，因為它已經包含 ORDER BY RAND()
         return $this->findByFilters($examPath, $subject, $limit);
     }
+
+    public function findAll(?string $examPath, ?string $subject, int $page = 1, int $limit = 20): array
+    {
+        $offset = ($page - 1) * $limit;
+        
+        // 获取总数
+        $countSql = "SELECT COUNT(*) FROM questions WHERE is_active = 1";
+        $countParams = [];
+        
+        if ($examPath) {
+            $countSql .= " AND exam_path = :exam_path";
+            $countParams[':exam_path'] = $examPath;
+        }
+        if ($subject) {
+            $countSql .= " AND subject = :subject";
+            $countParams[':subject'] = $subject;
+        }
+        
+        $countStmt = $this->db->prepare($countSql);
+        $countStmt->execute($countParams);
+        $total = (int)$countStmt->fetchColumn();
+        
+        // 获取题目列表
+        $sql = "SELECT * FROM questions WHERE is_active = 1";
+        $params = [];
+        
+        if ($examPath) {
+            $sql .= " AND exam_path = :exam_path";
+            $params[':exam_path'] = $examPath;
+        }
+        if ($subject) {
+            $sql .= " AND subject = :subject";
+            $params[':subject'] = $subject;
+        }
+        
+        $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $rows = $stmt->fetchAll();
+        $items = array_map([$this, 'decodeRow'], $rows);
+        
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'total_pages' => ceil($total / $limit)
+        ];
+    }
 }
